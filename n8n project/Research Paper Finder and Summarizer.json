@@ -1,0 +1,333 @@
+{
+  "name": "Research Paper Finder and Summarizer",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        -64
+      ],
+      "id": "4792130f-2acf-44d0-878a-c546169dc663",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "da9c913e-71d2-48d7-be8e-1a9ea26f2a42",
+              "name": "search_topic",
+              "value": "Transformers in NLP",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -96,
+        -64
+      ],
+      "id": "2fd242a7-c08e-4e1c-9c85-ea1f16f8598b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "=http://export.arxiv.org/api/query?search_query=all={{$json[\"search_topic\"]}}&start=0&max_results=5",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        112,
+        -64
+      ],
+      "id": "0aabbd2e-1767-4044-bfbc-6a0cf3a02b7d",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -64
+      ],
+      "id": "bd335c77-512e-4f44-8b15-4cebaf6fca7d",
+      "name": "XML"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items[0].json.feed.entry.map(entry => {\n  const rawAuthors = entry.author;\n\n  let authors = '';\n  if (Array.isArray(rawAuthors)) {\n    authors = rawAuthors.map(a => a.name[0]).join(\", \");\n  } else {\n    authors = rawAuthors.name[0];\n  }\n\n  return {\n    json: {\n      title: entry.title,\n      summary: entry.summary,\n      authors: authors,\n      link: entry.id\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -64
+      ],
+      "id": "dfd8b58e-a7a7-439f-92eb-987d58471750",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Based on the following summary, rate its difficulty as: Easy, Moderate, or Complex. Just return one word.\n\n{{ $json.message }}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1168,
+        -64
+      ],
+      "id": "cd456d81-857c-460d-8d40-0c0f6e2fff04",
+      "name": "Difficulty Rating",
+      "credentials": {
+        "openAiApi": {
+          "id": "aCjGPRtMUNZ9l4DG",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Extract 5 important keywords from the following summary. Return them as a comma-separated list.\n\n{{$node[\"Summarizer\"].json[\"message\"][\"content\"]}}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1520,
+        -64
+      ],
+      "id": "cee4671a-a9cc-49ed-9648-d876a1594b7f",
+      "name": "Keyword Extractor",
+      "credentials": {
+        "openAiApi": {
+          "id": "aCjGPRtMUNZ9l4DG",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Summarize the following research paper abstract in simple terms:\n\nTitle: {{$node[\"Code\"].json[\"title\"]}}\nAbstract: {{$node[\"Code\"].json[\"summary\"]}}\n\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        784,
+        -64
+      ],
+      "id": "8fdc8772-97a0-4e72-8e0c-d8fd9e3920c9",
+      "name": "Summarizer",
+      "credentials": {
+        "openAiApi": {
+          "id": "aCjGPRtMUNZ9l4DG",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "242cd815-b570-8089-ae4e-f1fe924945bb",
+          "mode": "list",
+          "cachedResultName": "Research Paper Summaries",
+          "cachedResultUrl": "https://www.notion.so/242cd815b5708089ae4ef1fe924945bb"
+        },
+        "title": "=",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Title|title",
+              "title": "={{$node[\"Code\"].json[\"title\"]}}\n"
+            },
+            {
+              "key": "Authors|rich_text",
+              "textContent": "={{$node[\"Code\"].json[\"authors\"]}}"
+            },
+            {
+              "key": "Link|url",
+              "urlValue": "={{$node[\"Code\"].json[\"link\"]}}"
+            },
+            {
+              "key": "Summary|rich_text",
+              "textContent": "={{$node[\"Summarizer\"].json[\"message\"][\"content\"]}}"
+            },
+            {
+              "key": "Difficulty|select",
+              "selectValue": "={{$node[\"Difficulty Rating\"].json[\"message\"][\"content\"]}}\n"
+            },
+            {
+              "key": "Keywords|rich_text",
+              "textContent": "={{$node[\"Keyword Extractor\"].json[\"message\"][\"content\"]}}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1872,
+        -64
+      ],
+      "id": "7cc40100-19ca-468f-b424-deb7ab9f167c",
+      "name": "Notion Database Integration",
+      "credentials": {
+        "notionApi": {
+          "id": "m8GFp5QLL54MSE7a",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "XML": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Summarizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Difficulty Rating": {
+      "main": [
+        [
+          {
+            "node": "Keyword Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarizer": {
+      "main": [
+        [
+          {
+            "node": "Difficulty Rating",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keyword Extractor": {
+      "main": [
+        [
+          {
+            "node": "Notion Database Integration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "39c67839-0597-49a1-89d5-c0ceb77c9bda",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1c45586d047151262c837e04b6bade5a0d9e61e4fcf4eeb821118d323e92c273"
+  },
+  "id": "VJlPXOVwW006bmzP",
+  "tags": []
+}
